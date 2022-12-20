@@ -1,0 +1,1117 @@
+---
+title: "Indicadores regionales"
+author: ""
+date: ""
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard
+---
+
+```{r, message=FALSE, message=FALSE, include=FALSE,echo=FALSE}
+
+rm(list=ls())
+options(scipen = 999) 
+
+```
+
+```{r, message=FALSE, include=FALSE, message=FALSE, echo=FALSE}
+library(shiny)
+library(flexdashboard)
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+library(plyr)
+library(openxlsx)
+library(plotly)
+library(digitize)
+```
+
+```{r Bases de datos, message=FALSE, include=FALSE, echo=FALSE, cache=TRUE}
+
+region26 <- as_tibble(read.xlsx("D:/Trabajo/Minedu/02 Análisis/2022/TDR Oct-Dic/03 Indicadores regionales app/01 Bases/BD_regiones.xlsx", sheet = "Región26")) %>% 
+  mutate(sb1=sb1*100,
+         sb2=sb2*100,
+         j2=j2/1000,
+         bp1=bp1/1000000,
+         bs1=bs1/1000000,
+         mplect_2s_19=round(mplect_2s_19,0),
+         mpmat_2s_19=round(mpmat_2s_19,0),
+         mplect_4p_19=round(mplect_4p_19,0),
+         mpmat_4p_19=round(mpmat_4p_19,0)) %>% 
+  mutate(regnatural=factor(regnatural,
+                           levels=c("Costa",
+                                    "Sierra",
+                                    "Selva"),
+                           labels =c("Costa",
+                                     "Sierra",
+                                     "Selva")))
+
+```
+
+Económicos
+============================================================
+
+Esta sección muestra información de variables económicas de cada región para el **año 2021**. Las variables consideradas son:
+
+* Ingreso real per cápita 2021 (Soles)
+* Gasto real per cápita 2021 (Soles)
+* PBI real per-cápita 2021 (Soles)
+* Ingreso promedio proveniente del trabajo 2020 (soles)
+
+```{r, message=FALSE, warning=FALSE, include=FALSE, echo=FALSE}
+
+econ <- region26 %>%
+  select(region,eco1:eco4)
+
+```
+
+```{r, message=FALSE, warning=FALSE, include=TRUE,echo=FALSE}
+
+fluidRow(
+  inputPanel(
+    selectInput("y1_input", 
+                label = "Indicador",
+                choices = c('Ingreso real per capita (Soles)' = "eco1",
+                            'Gasto real per capita (Soles)' = "eco2",
+                            'PBI real per capita (Soles)' = "eco3",
+                            'Ingreso promedio proveniente del trabajo 2020 (Soles)' = "eco4"
+                ),
+                selected = "eco1"
+    )
+  )
+)
+
+
+renderPlot({
+  
+  econ %>%
+    mutate(region2 = fct_reorder(region, .data[[input$y1_input]], .desc=FALSE)) %>%
+    ggplot(aes_string(x ="region2",
+                      y = input$y1_input))  +
+    geom_bar(stat="identity",
+             fill="#2ca25f") +
+    geom_text(aes(label=round(.data[[input$y1_input]],0),
+                  hjust=-0.2)) +
+    theme(axis.text=element_text(size=15),
+          axis.title = element_blank(),
+          axis.line = element_line(colour = "black")) +
+    theme(panel.background = element_blank()) +
+    coord_flip()
+  
+  
+  
+}, height = 400 , width = 900)
+
+```
+
+Sociales
+============================================================
+
+Esta sección muestra información de variables económicas de cada región para el **año 2021**. Las variables consideradas son:
+
+* Índice de Desarrollo Humano 2019 
+* Incidencia de pobreza (2021)
+* Aumento en la incidencia de pobreza en el periodo 2020-2019 (20/19)
+* Reducción en la incidencia de pobreza en el periodo 2021-2020 (21/20)
+* Índice global del hambre - IGH (2021)
+* Incidencia de pobreza multidimensional 2020 (%)
+
+```{r, message=FALSE, warning=FALSE, include=FALSE, echo=FALSE}
+
+soc <- region26 %>%
+  select(region,eco5:eco10) %>% 
+  mutate(eco8=eco8*-1)
+
+```
+
+```{r, message=FALSE, warning=FALSE, include=TRUE,echo=FALSE}
+
+inputPanel(
+  selectInput("y2_input", 
+              label = "Indicador",
+              choices = c('Índice de Desarrollo Humano - IDH (2019)' = "eco5",
+                          'Incidencia de pobreza a nivel regional (2021)' = "eco6",
+                          'Aumento en la incidencia de pobreza 20/19' = "eco7",
+                          'Reducción en la incidencia de pobreza 21/20' = "eco8",
+                          'Índice global del hambre - IGH (2021)' = "eco9",
+                          'Incidencia de pobreza multidimensional 2020 (%)' = "eco10"
+              ),
+              selected = "eco5"
+  )
+)
+
+renderPlot({
+  
+  soc %>%
+    mutate(region2 = fct_reorder(region, .data[[input$y2_input]], .desc=FALSE)) %>% 
+    ggplot(aes_string(x ="region2",
+                      y = input$y2_input))  +
+    geom_bar(stat="identity",
+             fill="#2ca25f") +
+    geom_text(aes(label=round(.data[[input$y2_input]],2),
+                  hjust=-0.2)) +
+    theme(axis.text=element_text(size=15),
+          axis.title = element_blank(),
+          axis.line = element_line(colour = "black")) + 
+    theme(panel.background = element_blank()) +
+    coord_flip()
+  
+  
+  
+}, height = 400 , width = 900)
+
+```
+
+Carencias de las IIEE
+==============================================
+
+Esta sección muestra información de la proporción de escuelas que cuentan con los servicios de luz, agua y desagüe conectados a una red pública para el **año 2022**. Las variables consideradas son:
+
+* Porcentaje de IIEE de nivel **primaria** con 3 servicios básicos (2022)
+* Porcentaje de IIEE de nivel **secundaria** con 3 servicios básicos (2022)
+
+```{r, message=FALSE, warning=FALSE, include=FALSE, echo=FALSE}
+
+infra <- region26 %>%
+  select(region,sb1:bs1)
+
+```
+
+```{r, message=FALSE, warning=FALSE, include=TRUE, echo=FALSE}
+
+inputPanel(
+  selectInput("y3_input",
+              label = "Indicador",
+              choices = c('IIEE de nivel primaria con 3 servicios básicos (%)' = "sb1",
+                          'IIEE de nivel secundaria con 3 servicios básicos (%)' = "sb2",
+                          'Total de la brecha de infraestructura en primaria en millones de soles (2021)' = "bp1",
+                          'Total de la brecha de infraestructura en secundaria en millones de soles (2021)' = "bs1"
+              ),
+              selected = "sb1"
+  )
+)
+
+renderPlot({
+  
+  infra %>%
+    mutate(region2 = fct_reorder(region, .data[[input$y3_input]], .desc=FALSE)) %>%
+    ggplot(aes_string(x ="region2",
+                      y = (input$y3_input))) +
+    geom_bar(stat="identity",
+             fill="#2ca25f") +
+    geom_text(aes(label=round(.data[[input$y3_input]],0),
+                  hjust=-0.05)) +
+    theme(axis.text=element_text(size=15),
+          axis.title = element_blank(),
+          axis.line = element_line(colour = "black")) +
+    theme(panel.background = element_blank()) +
+    coord_flip()
+  
+} , height = 400 , width = 1000)
+```
+
+Distribución Gasto educativo
+==============================================
+
+Esta sección muestra la distribución del gasto en educación que hicieron las regiones en el año **2021** según cuatro componentes:
+
+* Proporción de gastos en remuneraciones de docentes (2021)
+* Proporción de gastos en conceptos administrativos como mantenimiento, alquiler y/o compra de bienes y servicios (2021)
+* Proporción de gastos en remuneraciones de otro tipo de personal (limpieza, administrativo) (2021)
+
+```{r, message=FALSE, warning=FALSE, include=FALSE, echo=FALSE}
+
+gasted <- region26 %>%
+  select(region,gas1,gas2,gas3) %>%
+  gather(key="var", value="porcent",2:4) %>%
+  mutate(tipo=ifelse(var=="gas1","En personal",
+                     ifelse(var=="gas2","En docentes","En administración"))) %>% 
+  mutate(tipo = factor(tipo,
+                       levels = c("En docentes","En personal", "En administración"), 
+                       labels = c("En docentes","En personal", "En administración")))
+
+
+```
+
+```{r}
+
+inputPanel(
+  selectInput("y4_input",
+              label = "Indicador",
+              choices = c('Distribución del gasto (%)' = "porcent"
+              ),
+              selected = "porcent"
+  )
+)
+
+renderPlot({
+  
+  ggplot(gasted,aes(x =region,
+                    y = (porcent))) +
+    geom_bar(stat="identity", 
+             fill="#2ca25f",
+             width = 0.8) +
+    geom_text(aes(label=round(porcent,1),
+                  hjust=-0.1)) +
+    facet_wrap(vars(tipo)) +
+    theme(strip.text.x = element_text(size = 15)) +
+    theme(axis.text=element_text(size=15),
+          axis.title = element_blank(),
+          axis.line = element_line(colour = "black")) +
+    scale_x_discrete(limits=rev) +
+    scale_y_continuous(limits=c(0, 80)) +
+    theme(panel.background = element_blank()) +
+    theme(legend.text = element_text(size=10),
+          legend.title = element_blank(),
+          legend.position = "bottom") +
+    theme(axis.text.x = element_text(size=12)) +
+    coord_flip()
+  
+} , height = 400 , width = 900)
+```
+
+Conectividad
+==============================================
+
+Esta sección muestra la cantidad de centros poblados según el tipo de conexión de internet movil con el que cuentan al año **2021**. Los indicadores son:
+
+* Proporción de centros poblados que cuentan con tecnología de internet movil de 4G (2021)
+* Proporción de centros poblados que cuentan a lo más con tecnología de internet movil de 3G (2021)
+* Proporción de centros poblados que cuentan a lo más con tecnología de internet movil de 2G (2021)
+
+```{r}
+conect <- region26 %>%
+  select(region,pit4g,pit3g,pit2g) %>% 
+  gather(key="var", value="porcent",2:4) %>%
+  mutate(tipo=ifelse(var=="pit4g","Movil 4G",
+                     ifelse(var=="pit3g","A lo más movil 3G","A lo más movil 2G"))) %>% 
+  mutate(tipo = factor(tipo,
+                       levels = c("Movil 4G","A lo más movil 3G", "A lo más movil 2G"), 
+                       labels = c("Movil 4G","A lo más movil 3G", "A lo más movil 2G")))
+
+```
+
+```{r}
+inputPanel(
+  selectInput("y5_input",
+              label = "Indicador",
+              choices = c('Tecnología de internet movil en centros poblados' = "porcent"),
+              selected = "pit4g"
+  )
+)
+
+renderPlot({
+  
+  ggplot(conect,aes(x =region,
+                    y = (porcent))) +
+    geom_bar(stat="identity", 
+             fill="#2ca25f",
+             width = 0.8) +
+    geom_text(aes(label=round(porcent,1),
+                  hjust=-0.1)) +
+    facet_wrap(vars(tipo)) +
+    theme(strip.text.x = element_text(size = 15)) +
+    theme(axis.text=element_text(size=15),
+          axis.title = element_blank(),
+          axis.line = element_line(colour = "black")) +
+    scale_x_discrete(limits=rev) +
+    scale_y_continuous(limits=c(0, 100)) +
+    theme(panel.background = element_blank()) +
+    theme(legend.text = element_text(size=10),
+          legend.title = element_blank(),
+          legend.position = "bottom") +
+    theme(axis.text.x = element_text(size=12),
+          axis.text.y = element_text(size=15)) +
+    coord_flip()
+  
+  
+} , height = 400 , width = 1000)
+```
+
+Programas sociales
+==============================================
+
+Esta sección muestra información de la proporción de escuelas que cuentan con los servicios de luz, agua y desagüe conectados a una red pública para el **año 2022**. Las variables consideradas son:
+
+* Efectividad de la cobertura del programa juntos en la región (Hogares abonados/Hogares afiliados) (2021)
+* Transferencia monetaria de juntos en miles de soles) (2021)
+
+```{r, message=FALSE, warning=FALSE, include=FALSE, echo=FALSE}
+
+progs <- region26 %>%
+  select(region,j1,j2:qs2)
+
+```
+
+```{r, message=FALSE, warning=FALSE, include=TRUE, echo=FALSE}
+
+inputPanel(
+  selectInput("y6_input",
+              label = "Indicador",
+              choices = c('Efectividad de la cobertura del programa juntos en la región (2021)' = "j1",
+                          'Transferencia monetaria de juntos (2021, en miles de soles)' = "j2",
+                          'Total de IIEE de primaria que reciben Qaliwarma (2021)' = "qp1",
+                          'Total de estudiantes de primaria que reciben Qaliwarma (2021)' = "qp2",
+                          'Total de IIEE de secundaria que reciben Qaliwarma (2021)' = "qs1",
+                          'Total de estudiantes de secundaria que reciben Qaliwarma (2021)' = "qs2"),
+              selected = "j1"
+  )
+)
+
+renderPlot({
+  
+  progs %>%
+    mutate(region2 = fct_reorder(region, .data[[input$y6_input]], .desc=FALSE)) %>%
+    ggplot(aes_string(x ="region2",
+                      y = (input$y6_input))) +
+    geom_bar(stat="identity",
+             fill="#2ca25f") +
+    geom_text(aes(label=round(.data[[input$y6_input]],2),
+                  hjust=-0.1))  +
+    theme(axis.text=element_text(size=15),
+          axis.title = element_blank(),
+          axis.line = element_line(colour = "black")) +
+    theme(panel.background = element_blank()) +
+    coord_flip()
+  
+} , height = 400 , width = 1000)
+```
+
+Gasto por alumno
+==============================================
+
+Descripción:
+
+* Gasto por alumno en primaria en 2021(soles)
+* Gasto por alumno en primaria en 2021 (soles)
+
+```{r, message=FALSE, warning=FALSE, include=FALSE, echo=FALSE}
+
+gxa <- region26 %>%
+  select(region,p1,s1)
+
+```
+
+```{r, message=FALSE, warning=FALSE, include=TRUE, echo=FALSE}
+
+inputPanel(
+  selectInput("y7_input",
+              label = "Indicador",
+              choices = c('Gasto por alumno en primaria en 2021 (soles)' = "p1",
+                          'Gasto por alumno en primaria en 2021 (soles)' = "s1"              ),
+              selected = "p1"
+  )
+)
+
+renderPlot({
+  
+  gxa %>%
+    mutate(region2 = fct_reorder(region, .data[[input$y7_input]], .desc=FALSE)) %>%
+    ggplot(aes_string(x ="region2",
+                      y = (input$y7_input))) +
+    geom_bar(stat="identity",
+             fill="#2ca25f") +
+    geom_text(aes(label=round(.data[[input$y7_input]],0),
+                  hjust=-0.1))  +
+    theme(axis.text=element_text(size=15),
+          axis.title = element_blank(),
+          axis.line = element_line(colour = "black")) +
+    theme(panel.background = element_blank()) +
+    coord_flip()
+  
+} , height = 400 , width = 900)
+```
+
+Trayectoria educativa
+==============================================
+
+Descripción:
+
+* Gasto por alumno en primaria en 2021(soles)
+* Gasto por alumno en primaria en 2021 (soles)
+
+```{r, message=FALSE, warning=FALSE, include=FALSE, echo=FALSE}
+
+trayec <- region26 %>%
+  select(region,cp1:cs4)
+
+```
+
+```{r, message=FALSE, warning=FALSE, include=TRUE, echo=FALSE}
+
+inputPanel(
+  selectInput("y8_input",
+              label = "Indicador",
+              choices = c('Estudiantes repetidores en primaria (%), 2021' = "cp1",
+                          'Estudiantes con atraso escolar en primaria(%), 2021' = "cp2",
+                          'Ratio de alumnos por docente en primaria (2021)' = "cp3",
+                          'Tamaño promedio de clase en primaria (2021)' = "cp4",
+                          'Estudiantes repetidores en secundaria (%), 2021' = "cs1",
+                          'Estudiantes con atraso escolar en secundaria(%), 2021' = "cs2",
+                          'Ratio de alumnos por docente en secundaria (2021)' = "cs3",
+                          'Tamaño promedio de clase en secundaria (2021)' = "cs4"
+              ),
+              selected = "cp1"
+  )
+)
+
+renderPlot({
+  
+  trayec %>%
+    mutate(region2 = fct_reorder(region, .data[[input$y8_input]], .desc=FALSE)) %>%
+    ggplot(aes_string(x ="region2",
+                      y = (input$y8_input))) +
+    geom_bar(stat="identity",
+             fill="#2ca25f") +
+    geom_text(aes(label=round(.data[[input$y8_input]],2),
+                  hjust=-0.1))  +
+    theme(axis.text=element_text(size=15),
+          axis.title = element_blank(),
+          axis.line = element_line(colour = "black")) +
+    theme(panel.background = element_blank()) +
+    coord_flip()
+  
+} , height = 400 , width = 900)
+```
+
+Docente: Sexo
+==============================================
+
+Descripción:
+
+* Gasto por alumno en primaria en 2021(soles)
+* Gasto por alumno en primaria en 2021 (soles)
+
+```{r, message=FALSE, warning=FALSE, include=FALSE, echo=FALSE}
+
+docsxp <- region26 %>%
+  select(region,Hombre=dp1,Mujer=dp2) %>% 
+  gather(key="tipo",value="porcentp",2:3) 
+
+docsxs <- region26 %>%
+  select(region,Hombre=ds1,Mujer=ds2) %>% 
+  gather(key="tipo",value="porcents",2:3) 
+
+docsx <- left_join(docsxp,docsxs,by=c("region","tipo"))
+
+```
+
+```{r, message=FALSE, warning=FALSE, include=TRUE, echo=FALSE}
+
+inputPanel(
+  selectInput("y9_input",
+              label = "Indicador",
+              choices = c('Distribución de docentes según su sexo en primaria, 2021' = "porcentp",
+                          'Distribución de docentes según su sexo en secundaria, 2021' = "porcents"
+              ),
+              selected = "porcentp"
+  )
+)
+
+renderPlot({
+  
+  ggplot(docsx,aes_string(x ="region",
+                          y = (input$y9_input))) +
+    geom_bar(stat="identity",
+             fill="#2ca25f",
+             width = 0.8) +
+    facet_wrap(vars(tipo)) +
+    theme(strip.text.x = element_text(size = 15)) +
+    geom_text(aes(label=round(.data[[input$y9_input]],2),
+                  hjust=-0.1))  +
+    theme(axis.text=element_text(size=15),
+          axis.title = element_blank(),
+          axis.line = element_line(colour = "black")) +
+    scale_x_discrete(limits=rev) +
+    scale_y_continuous(limits=c(0, 100)) +
+    theme(panel.background = element_blank()) +
+    theme(legend.text = element_text(size=10),
+          legend.title = element_blank(),
+          legend.position = "bottom") +
+    theme(axis.text.x = element_text(size=12),
+          axis.text.y = element_text(size=15)) +
+    coord_flip()
+  
+} , height = 500 , width = 1000)
+```
+
+Docente: Edad
+==============================================
+
+Descripción:
+
+* Gasto por alumno en primaria en 2021(soles)
+* Gasto por alumno en primaria en 2021 (soles)
+
+```{r, message=FALSE, warning=FALSE, include=FALSE, echo=FALSE}
+
+docedad <- region26 %>%
+  select(region,dp3,ds3)
+
+```
+
+```{r, message=FALSE, warning=FALSE, include=TRUE, echo=FALSE}
+
+inputPanel(
+  selectInput("y10_input",
+              label = "Indicador",
+              choices = c('Promedio de edad de los docentes en primaria, 2021' = "dp3",
+                          'Promedio de edad de los docentes en secundaria, 2021' = "ds3"
+              ),
+              selected = "dp3"
+  )
+)
+
+renderPlot({
+  
+  docedad %>% 
+    mutate(region2 = fct_reorder(region, .data[[input$y10_input]], .desc=FALSE)) %>% 
+    ggplot(aes_string(x ="region2",
+                      y = (input$y10_input))) +
+    geom_bar(stat="identity",
+             fill="#2ca25f") +
+    scale_y_continuous(limits=c(0, 80)) +
+    geom_text(aes(label=round(.data[[input$y10_input]],2),
+                  hjust=-0.1))  +
+    theme(axis.text=element_text(size=15),
+          axis.title = element_blank(),
+          axis.line = element_line(colour = "black")) +
+    theme(panel.background = element_blank()) +
+    coord_flip()
+  
+} , height = 400 , width = 1000)
+```
+
+Docente: Escala Magisterial
+==============================================
+
+Descripción:
+
+* Gasto por alumno en primaria en 2021(soles)
+* Gasto por alumno en primaria en 2021 (soles)
+
+```{r, message=FALSE, warning=FALSE, include=FALSE, echo=FALSE}
+
+docemp <- region26 %>%
+  select(region,escala1=dp5_1,escala2=dp5_2,escala3=dp5_3,escala4=dp5_4,escala5=dp5_5,escala6=dp5_6,escala7=dp5_7) %>% 
+  mutate(total=escala1+escala2+escala3+escala4+escala5+escala6+escala7) %>% 
+  mutate(escala1=round(escala1/total*100,2),
+         escala2=round(escala2/total*100,2),
+         escala3=round(escala3/total*100,2),
+         escala4=round(escala4/total*100,2),
+         escala5=round(escala5/total*100,2),
+         escala6=round(escala6/total*100,2),
+         escala7=round(escala7/total*100,2)) %>% 
+  gather(key="tipo",value="porcentp",2:8)
+
+docems <- region26 %>%
+  select(region,escala1=ds5_1,escala2=ds5_2,escala3=ds5_3,escala4=ds5_4,escala5=ds5_5,escala6=ds5_6,escala7=ds5_7) %>% 
+  mutate(total=escala1+escala2+escala3+escala4+escala5+escala6+escala7) %>% 
+  mutate(escala1=round(escala1/total*100,2),
+         escala2=round(escala2/total*100,2),
+         escala3=round(escala3/total*100,2),
+         escala4=round(escala4/total*100,2),
+         escala5=round(escala5/total*100,2),
+         escala6=round(escala6/total*100,2),
+         escala7=round(escala7/total*100,2)) %>% 
+  gather(key="tipo",value="porcents",2:8) 
+
+docem <- left_join(docemp,docems, by=c("region","tipo"))
+
+```
+
+```{r, message=FALSE, warning=FALSE, include=TRUE, echo=FALSE}
+
+inputPanel(
+  selectInput("y11_input",
+              label = "Indicador",
+              choices = c('Distribución de docentes según escala magisterial en primaria, 2021' = "porcentp",
+                          'Distribución de docentes según escala magisterial en secundaria, 2021' = "porcents"
+              ),
+              selected = "porcentp"
+  )
+)
+
+renderPlot({
+  
+  ggplot(docem,aes_string(x ="region",
+                          y = (input$y11_input))) +
+    geom_bar(stat="identity",
+             fill="#2ca25f",
+             width = 0.8) +
+    facet_wrap(vars(tipo),
+               scales="fixed",
+               ncol=7,
+               nrow=1) +
+    theme(strip.text.x = element_text(size = 15)) +
+    geom_text(aes(label=round(.data[[input$y11_input]],1),
+                  hjust=-0.1),
+              size=4) +
+    theme(axis.text=element_text(size=15),
+          axis.title = element_blank(),
+          axis.line = element_line(colour = "black")) +
+    scale_x_discrete(limits=rev) +
+    scale_y_continuous(limits=c(0, 55)) +
+    theme(panel.background = element_blank()) +
+    theme(legend.title = element_blank(),
+          legend.position = "bottom") +
+    theme(axis.text.x = element_text(size=10),
+          axis.text.y = element_text(size=10)) +
+    coord_flip()
+  
+} , height = 400 , width = 1000)
+```
+
+Docente: Situaciones pandemia
+==============================================
+
+Descripción:
+
+* Gasto por alumno en primaria en 2021(soles)
+* Gasto por alumno en primaria en 2021 (soles)
+
+```{r, message=FALSE, warning=FALSE, include=FALSE, echo=FALSE}
+
+sitpanp <- region26 %>%
+  select(region,dp6_1:dp6_4) %>% 
+  gather(key="tipo",value="porcentp",2:5) %>% 
+  mutate(tipo = ifelse(tipo=="dp6_1","Hogar con Covid-19",
+                       ifelse(tipo=="dp6_2","Se tuvo que mudar",
+                              ifelse(tipo=="dp6_3","Recibió apoyo nemocional/psicológico","Tiene un trabajo adicional"))))
+
+sitpans <- region26 %>%
+  select(region,ds6_1:ds6_4) %>% 
+  gather(key="tipo",value="porcents",2:5) %>% 
+  mutate(tipo = ifelse(tipo=="ds6_1","Hogar con Covid-19",
+                       ifelse(tipo=="ds6_2","Se tuvo que mudar",
+                              ifelse(tipo=="ds6_3","Recibió apoyo nemocional/psicológico","Tiene un trabajo adicional"))))
+
+sitpan <- left_join(sitpanp,sitpans,by=c("region","tipo")) %>% 
+  mutate(tipo = factor(tipo,
+                       levels = c("Hogar con Covid-19",
+                                  "Se tuvo que mudar", 
+                                  "Recibió apoyo nemocional/psicológico",
+                                  "Tiene un trabajo adicional"), 
+                       labels = c("Hogar con Covid-19",
+                                  "Se tuvo que mudar", 
+                                  "Recibió apoyo \nemocional/psicológico",
+                                  "Tiene un trabajo adicional")))
+
+```
+
+```{r, message=FALSE, warning=FALSE, include=TRUE, echo=FALSE}
+
+inputPanel(
+  selectInput("y12_input",
+              label = "Indicador",
+              choices = c('Incidencia de diferentes situaciones relacionadas a la pandemia entre los docentes de primaria, (2021)' = "porcentp",
+                          'Incidencia de diferentes situaciones relacionadas a la pandemia entre los docentes de secundaria (2021)' = "porcents"
+              ),
+              selected = "porcentp"
+  )
+)
+
+renderPlot({
+  
+  ggplot(sitpan,aes_string(x ="region",
+                           y = (input$y12_input))) +
+    geom_bar(stat="identity",
+             fill="#2ca25f",
+             width = 0.8) +
+    facet_wrap(vars(tipo), 
+               scales="fixed", 
+               ncol = 4,
+               nrow=1) +
+    theme(strip.text.x = element_text(size = 15)) +
+    geom_text(aes(label=round(.data[[input$y12_input]],2),
+                  hjust=-0.1),
+              size=3.5)  +
+    theme(axis.title = element_blank(),
+          axis.line = element_line(colour = "black")) +
+    scale_x_discrete(limits=rev) +
+    scale_y_continuous(limits=c(0, 75)) +
+    theme(panel.background = element_blank()) +
+    theme(legend.text = element_text(size=10),
+          legend.title = element_blank(),
+          legend.position = "bottom") +
+    theme(axis.text.x = element_text(size=10),
+          axis.text.y = element_text(size=12)) +
+    coord_flip()
+  
+} , height = 400 , width = 1000)
+```
+
+Docente: Uso del tiempo
+==============================================
+
+Descripción:
+
+* Gasto por alumno en primaria en 2021(soles)
+* Gasto por alumno en primaria en 2021 (soles)
+
+```{r, message=FALSE, warning=FALSE, include=FALSE, echo=FALSE}
+
+#Preparar clases y labores administrativas
+utp1 <- region26 %>%
+  select(region,dp7_1:dp7_4) %>% 
+  gather(key = "tipo",value="ppro1",2:5) %>% 
+  mutate(tipo=ifelse(tipo=="dp7_1","No realiza",
+                     ifelse(tipo=="dp7_2","Menos de 1 hora",
+                            ifelse(tipo=="dp7_3","Entre 1 a 3 horas","Mas de 3 horas"))))
+
+#Retroalimentar y evaluar alumnos
+utp2 <- region26 %>%
+  select(region,dp8_1:dp8_4) %>% 
+  gather(key = "tipo",value="ppro2",2:5) %>% 
+  mutate(tipo=ifelse(tipo=="dp8_1","No realiza",
+                     ifelse(tipo=="dp8_2","Menos de 1 hora",
+                            ifelse(tipo=="dp8_3","Entre 1 a 3 horas","Mas de 3 horas"))))
+
+#Atender padres/madres de familia
+utp3 <- region26 %>%
+  select(region,dp9_1:dp9_4) %>% 
+  gather(key = "tipo",value="ppro3",2:5) %>% 
+  mutate(tipo=ifelse(tipo=="dp9_1","No realiza",
+                     ifelse(tipo=="dp9_2","Menos de 1 hora",
+                            ifelse(tipo=="dp9_3","Entre 1 a 3 horas","Mas de 3 horas"))))
+
+#Trabajo en equipo y de forma colegiada con colegas
+utp4 <- region26 %>%
+  select(region,dp10_1:dp10_4) %>% 
+  gather(key = "tipo",value="ppro4",2:5) %>% 
+  mutate(tipo=ifelse(tipo=="dp10_1","No realiza",
+                     ifelse(tipo=="dp10_2","Menos de 1 hora",
+                            ifelse(tipo=="dp10_3","Entre 1 a 3 horas","Mas de 3 horas"))))
+
+#Preparar clases y labores administrativas
+uts1 <- region26 %>%
+  select(region,ds7_1:ds7_4) %>% 
+  gather(key = "tipo",value="spro1",2:5) %>% 
+  mutate(tipo=ifelse(tipo=="ds7_1","No realiza",
+                     ifelse(tipo=="ds7_2","Menos de 1 hora",
+                            ifelse(tipo=="ds7_3","Entre 1 a 3 horas","Mas de 3 horas"))))
+
+#Retroalimentar y evaluar alumnos
+uts2 <- region26 %>%
+  select(region,ds8_1:ds8_4) %>% 
+  gather(key = "tipo",value="spro2",2:5) %>% 
+  mutate(tipo=ifelse(tipo=="ds8_1","No realiza",
+                     ifelse(tipo=="ds8_2","Menos de 1 hora",
+                            ifelse(tipo=="ds8_3","Entre 1 a 3 horas","Mas de 3 horas"))))
+
+#Atender padres/madres de familia
+uts3 <- region26 %>%
+  select(region,ds9_1:ds9_4) %>% 
+  gather(key = "tipo",value="spro3",2:5) %>% 
+  mutate(tipo=ifelse(tipo=="ds9_1","No realiza",
+                     ifelse(tipo=="ds9_2","Menos de 1 hora",
+                            ifelse(tipo=="ds9_3","Entre 1 a 3 horas","Mas de 3 horas"))))
+
+#Trabajo en equipo y de forma colegiada con colegas
+
+uts4 <- region26 %>%
+  select(region,ds10_1:ds10_4) %>% 
+  gather(key = "tipo",value="spro4",2:5) %>% 
+  mutate(tipo=ifelse(tipo=="ds10_1","No realiza",
+                     ifelse(tipo=="ds10_2","Menos de 1 hora",
+                            ifelse(tipo=="ds10_3","Entre 1 a 3 horas","Mas de 3 horas"))))
+
+usotiemp <- left_join(utp1,utp2,by=c("region","tipo")) %>% 
+  left_join(utp3,by=c("region","tipo")) %>% 
+  left_join(utp4,by=c("region","tipo")) %>% 
+  left_join(uts1,by=c("region","tipo")) %>% 
+  left_join(uts2,by=c("region","tipo")) %>% 
+  left_join(uts3,by=c("region","tipo")) %>% 
+  left_join(uts4,by=c("region","tipo")) %>% 
+  mutate(tipo = factor(tipo,
+                       levels = c("No realiza",
+                                  "Menos de 1 hora", 
+                                  "Entre 1 a 3 horas",
+                                  "Mas de 3 horas"), 
+                       labels = c("No realiza",
+                                  "Menos de 1 hora", 
+                                  "Entre 1 a 3 horas",
+                                  "Mas de 3 horas")))
+```
+
+```{r, message=FALSE, warning=FALSE, include=TRUE, echo=FALSE}
+
+inputPanel(
+  selectInput("y13_input",
+              label = "Indicador",
+              choices = c('Tiempo dedicado a preparar las clases y labores administrativas, primaria' = "ppro1",
+                          'Tiempo dedicado a Retroalimentar y evaluar a los estudiantes, primaria' = "ppro2",
+                          'Tiempo dedicado a Atender a padres y madres de familia, primaria' = "ppro3",
+                          'Tiempo dedicado a Trabajar en equipo y de forma colegiada con sus colegas, primaria' = "ppro4",
+                          'Tiempo dedicado a preparar las clases y labores administrativas, secundaria' = "spro1",
+                          'Tiempo dedicado a Retroalimentar y evaluar a los estudiantes, secundaria' = "spro2",
+                          'Tiempo dedicado a Atender a padres y madres de familia, secundaria' = "spro3",
+                          'Tiempo dedicado a Trabajar en equipo y de forma colegiada con sus colegas,secundaria' = "spro4"
+              ),
+              selected = "ppro1"
+  )
+)
+
+renderPlot({
+  
+  ggplot(usotiemp,aes_string(x ="region",
+                             y = (input$y13_input))) +
+    geom_bar(stat="identity",
+             fill="#2ca25f",
+             width = 0.8) +
+    facet_wrap(vars(tipo), 
+               scales="fixed", 
+               ncol=4,
+               nrow=1) +
+    theme(strip.text.x = element_text(size = 15)) +
+    geom_text(aes(label=round(.data[[input$y13_input]],2),
+                  hjust=-0.1),
+              size=3.5)  +
+    theme(axis.title = element_blank(),
+          axis.line = element_line(colour = "black")) +
+    scale_x_discrete(limits=rev) +
+    scale_y_continuous(limits=c(0, 100)) +
+    theme(panel.background = element_blank()) +
+    theme(legend.text = element_text(size=10),
+          legend.title = element_blank(),
+          legend.position = "bottom") +
+    theme(axis.text.x = element_text(size=10),
+          axis.text.y = element_text(size=12)) +
+    coord_flip()
+  
+} , height = 400 , width = 1000)
+```
+
+Docente: Dificultades
+==============================================
+
+Descripción:
+
+* Gasto por alumno en primaria en 2021(soles)
+* Gasto por alumno en primaria en 2021 (soles)
+
+```{r, message=FALSE, warning=FALSE, include=FALSE, echo=FALSE}
+
+#Difícil
+
+difp1 <- region26 %>%
+  select(region,dp11_1:dp11_7) %>%
+  gather(key = "tipo",value="ppro1",2:8) %>%
+  mutate(tipo=ifelse(tipo=="dp11_1","Planificar la enseñanza \nde forma individual o \ncolegiada",
+                     ifelse(tipo=="dp11_2","Planificar actividades bajo \nel enfoque por competencias \ndel Currículo Nacional",
+                            ifelse(tipo=="dp11_3","Realizar la evaluación \ndiagnóstica y formativa",
+                                   ifelse(tipo=="dp11_4","Virtualizar la enseñanza, \nadaptando y/o \ncomplementando las \nsesiones de \n“Aprendo en casa”",
+                                          ifelse(tipo=="dp11_5","Atender los problemas \nsocioemocionales de sus \nestudiantes",
+                                                 ifelse(tipo=="dp11_6","Coordinar y responder a \nla demanda de padres y \nmadres de familia","Proponer e implementar \ninnovaciones o buenas \nprácticas pedagógicas")))))))
+
+
+difs1 <- region26 %>%
+  select(region,ds11_1:ds11_7) %>%
+  gather(key = "tipo",value="spro1",2:8) %>%
+  mutate(tipo=ifelse(tipo=="ds11_1","Planificar la enseñanza \nde forma individual o \ncolegiada",
+                     ifelse(tipo=="ds11_2","Planificar actividades bajo \nel enfoque por competencias \ndel Currículo Nacional",
+                            ifelse(tipo=="ds11_3","Realizar la evaluación \ndiagnóstica y formativa",
+                                   ifelse(tipo=="ds11_4","Virtualizar la enseñanza, \nadaptando y/o \ncomplementando las \nsesiones de \n“Aprendo en casa”",
+                                          ifelse(tipo=="ds11_5","Atender los problemas \nsocioemocionales de sus \nestudiantes",
+                                                 ifelse(tipo=="ds11_6","Coordinar y responder a \nla demanda de padres y \nmadres de familia","Proponer e implementar \ninnovaciones o buenas \nprácticas pedagógicas")))))))
+
+
+dif <- left_join(difp1,difs1,by=c("region","tipo")) 
+```
+
+```{r, message=FALSE, warning=FALSE, include=TRUE, echo=FALSE}
+
+inputPanel(
+  selectInput("y14_input",
+              label = "Indicador",
+              choices = c('Dificultades primaria' = "ppro1",
+                          'Dificultades secundaria' = "spro1"
+              ),
+              selected = "ppro1"
+  )
+)
+
+renderPlot({
+  
+  ggplot(dif, aes_string(x ="region",
+                         y = input$y14_input)) +
+    geom_bar(stat="identity",
+             fill="#2ca25f",
+             width = 0.8) +
+    facet_wrap(vars(tipo), 
+               scales="fixed", 
+               ncol=7,
+               nrow=1) +
+    theme(strip.text.x = element_text(size = 15)) +
+    geom_text(aes(label=round(.data[[input$y14_input]],2),
+                  hjust=-0.1),
+              size=3.5)  +
+    theme(axis.title = element_blank(),
+          axis.line = element_line(colour = "black")) +
+    scale_x_discrete(limits=rev) +
+    scale_y_continuous(limits=c(0, 100)) +
+    theme(panel.background = element_blank()) +
+    theme(legend.text = element_text(size=10),
+          legend.title = element_blank(),
+          legend.position = "bottom") +
+    theme(axis.text.x = element_text(size=10),
+          axis.text.y = element_text(size=12)) +
+    coord_flip()
+  
+} , height = 500 , width = 1600)
+```
+
+Docente: Innovación
+==============================================
+
+Descripción:
+
+* Gasto por alumno en primaria en 2021(soles)
+* Gasto por alumno en primaria en 2021 (soles)
+
+```{r, message=FALSE, warning=FALSE, include=FALSE, echo=FALSE}
+
+innovp <- region26 %>%
+  select(region,dp12_1:dp12_3) %>%
+  gather(key = "tipo",value="ppro1",2:4) %>%
+  mutate(tipo=ifelse(tipo=="dp12_1","Realizó o participó \nsolo en proyecto de \ninnovación",
+                     ifelse(tipo=="dp12_2","Realizó o participó \nde un proyecto de \ninnovación y de buena \npráctica pedagógica", "Realizó o participó \nsolo de un \nproyecto de buena \npráctica pedagógica")))
+
+
+innovs <- region26 %>%
+  select(region,ds12_1:ds12_3) %>%
+  gather(key = "tipo",value="spro1",2:4) %>%
+  mutate(tipo=ifelse(tipo=="ds12_1","Realizó o participó \nsolo en proyecto de \ninnovación",
+                     ifelse(tipo=="ds12_2","Realizó o participó \nde un proyecto de \ninnovación y de buena \npráctica pedagógica", "Realizó o participó \nsolo de un \nproyecto de buena \npráctica pedagógica")))
+
+innov <- left_join(innovp,innovs,by=c("region","tipo")) 
+
+```
+
+```{r, message=FALSE, warning=FALSE, include=TRUE, echo=FALSE}
+
+inputPanel(
+  selectInput("y15_input",
+              label = "Indicador",
+              choices = c('Proporción de docentes de primaria que realiza actividades de innovación' = "ppro1",
+                          'Proporción de docentes de secundaria que realiza actividades de innovación' = "spro1"
+              ),
+              selected = "ppro1"
+  )
+)
+
+renderPlot({
+  
+  ggplot(innov, aes_string(x ="region",
+                           y = input$y15_input)) +
+    geom_bar(stat="identity",
+             fill="#2ca25f",
+             width = 0.8) +
+    facet_wrap(vars(tipo), 
+               scales="free", 
+               ncol=7,
+               nrow=1) +
+    theme(strip.text.x = element_text(size = 15)) +
+    geom_text(aes(label=round(.data[[input$y15_input]],2),
+                  hjust=-0.1),
+              size=3.5)  +
+    theme(axis.title = element_blank(),
+          axis.line = element_line(colour = "black")) +
+    scale_x_discrete(limits=rev) +
+    scale_y_continuous(limits=c(0, 50)) +
+    theme(panel.background = element_blank()) +
+    theme(legend.text = element_text(size=10),
+          legend.title = element_blank(),
+          legend.position = "bottom") +
+    theme(axis.text.x = element_text(size=10),
+          axis.text.y = element_text(size=12)) +
+    coord_flip()
+  
+} , height = 500 , width = 1000)
+```
+
+
+Rendimiento
+==============================================
+
+Esta sección permite visualizar la relación
+
+```{r}
+
+ejesx <- c('Ingreso real per capita (Soles)' = "eco1",
+           'Gasto real per capita (Soles)' = "eco2",
+           'PBI real per capita (Soles)' = "eco3",
+           'Ingreso promedio proveniente del trabajo 2020 (Soles)' = "eco4",
+           'Índice desarrollo humano (IDH)' = "eco5",
+           'Incidencia de la pobreza (%)' = "eco6",
+           'Cambio en pobreza 20/19' = "eco7",
+           'Reducción de pobreza 21/20' = "eco8",
+           'Índice global de hambre -IGH' = "eco9",
+           'Incidencia de pobreza multidimensional' = "eco10",
+           'IIEE de nivel primaria con 3 servicios básicos (%)' = "sb1",
+           'IIEE de nivel secundaria con 3 servicios básicos (%)' = "sb2",
+           'Total de la brecha de infraestructura en primaria en millones de soles (2021)' = "bp1",
+           'Total de la brecha de infraestructura en secundaria en millones de soles (2021)' = "bs1",
+           'Remuneración de otro personal (% del total)' = "gas1",
+           'Remuneración de personal docente (% del total)' = "gas2",
+           'Gasto en bienes, servicios y mantenimiento (% del total)'= "gas3",
+           '% de centros poblados que cuenta con tecnología de internet movil de 4G' = "pit4g",
+           '% de centros poblados que cuenta a lo más con tecnología de internet movil de 3G' = "pit3g",
+           '% de centros poblados que cuenta a lo más con tecnología de internet movil de 2G'= "pit2g",
+           'Efectividad de la cobertura de Juntos' = "j1",
+           'Volumen de las transferencias de Juntos'= "j2"
+)
+
+
+ejesy <- c('Rendimiento en Lectura 2.° de secundaria 2019'= 'mplect_2s_19',
+           'Rendimiento en Matemática 2.° de secundaria 2019'= 'mpmat_2s_19',
+           'Rendimiento en Lectura 4.° de primaria 2019'= 'mplect_4p_19',
+           'Rendimiento en Matemática 4.° de primaria 2019'= 'mpmat_4p_19'
+)
+
+
+
+```
+
+```{r}
+
+inputPanel(
+  selectInput(inputId = "VarX",
+              label = "Indicador de eje X",
+              choices = ejesx,
+              selected = "eco1"
+  ),
+  selectInput(inputId = "VarY",
+              label = "Indicador de eje Y",
+              choices = ejesy,
+              selected = "mplect_2s_19"
+  )
+)
+
+renderPlotly({
+  
+  
+  p1<-
+    ggplot(region26, aes_string(x =input$VarX,
+                                y = input$VarY,
+                                key="region",
+                                fill="regnatural")) +
+    geom_point(size=2.8) +
+    labs(x = names(ejesx[which(ejesx == input$VarX)]),
+         y = names(ejesy[which(ejesy == input$VarY)])) +
+    scale_y_continuous(limits=c(350, 650)) +
+    theme(axis.text=element_text(size=15),
+          axis.line = element_line(colour = "black")) +
+    theme(panel.background = element_blank())
+  
+  ggplotly(p1,
+           tooltip = c("key",
+                       input$VarY,
+                       input$VarX),
+           width = 800,
+           height = 500)
+  
+  
+})
+
+```
